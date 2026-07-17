@@ -1,9 +1,9 @@
 {
   "name": "warehouse-stuff",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "dev": "nodemon server.js",
-    "start": "node index.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "dotenv": "^17.4.2",
