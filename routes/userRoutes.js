@@ -8,7 +8,7 @@ router.get("/", async (req, res) => {
     const { name, age, role } = req.query;
     const filters = {};
 
-    if (Number.isNaN(age)) {
+    if (age !== undefined && Number.isNaN(age)) {
       return res.status(400).json({ message: "Age must be a number." });
     }
 
@@ -53,7 +53,7 @@ router.patch("/:id", async (req, res) => {
     const updates = {};
 
     if (name !== undefined) updates.name = name;
-    if (age !== undefined) updates.age = age;
+    if (age !== undefined) updates.age = Number(age);
     if (role !== undefined) updates.role = role;
     if (!updates) {
       return res.status(400).json({ message: "No fields to update" });
@@ -61,7 +61,7 @@ router.patch("/:id", async (req, res) => {
 
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
-      { updates },
+      { $set: updates },
       { returnDocument: "after", runValidators: true },
     );
 
