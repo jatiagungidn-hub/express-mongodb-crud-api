@@ -3,13 +3,43 @@ const User = require("../models/User");
 
 const router = express.Router();
 
-router.get("/", async (req, res) => {
+router.post("/", async (req, res, next) => {
+  try {
+    const { name, age, role } = req.body;
+    const user = await User.create({ name, age, role });
+
+    res.status(201).json({
+      status: "success",
+      message: "User added successfully",
+      data: user,
+    });
+  } catch (err) {
+    console.error(err);
+
+    if (err.name === "ValidationError") {
+      return res.status(400).json({ status: "error", message: err.message });
+    }
+
+    if (err.code === 11000) {
+      return res.status(400).json({
+        status: "error",
+        message: "Duplicate Key Error: Data already exists",
+      });
+    }
+
+    next(err);
+  }
+});
+
+router.get("/", async (req, res, next) => {
   try {
     const { name, age, role } = req.query;
     const filters = {};
 
-    if (age !== undefined && Number.isNaN(age)) {
-      return res.status(400).json({ message: "Age must be a number." });
+    if (age !== undefined && isNaN(Number(age))) {
+      return res
+        .status(400)
+        .json({ status: "error", message: "Age must be a number." });
     }
 
     if (name) filters.name = { $regex: name, $options: "i" };
@@ -19,35 +49,45 @@ router.get("/", async (req, res) => {
     const users = await User.find(filters);
 
     res.status(200).json({
+      status: "success",
       message:
         users.length > 0
-          ? `Find ${users.length} match user(s)`
+          ? `Found ${users.length} matching user(s)`
           : "No user matched your query.",
       count: users.length,
       data: users,
     });
   } catch (err) {
     console.error(err);
-
-    res.status(500).json({ message: "Internal Server Error" });
+    next(err);
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req, res, next) => {
   try {
-    const id = req.params.id;
+    const user = await User.findById(req.params.id);
 
-    const user = await User.findById(id);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "User not found." });
+    }
 
-    res.status(200).json({ count: user.length, data: user });
+    res.status(200).json({ status: "success", data: user });
   } catch (err) {
     console.error(err);
 
-    res.status(500).json({ message: "Internal Server Error" });
+    if (err.name === "CastError") {
+      return res
+        .status(400)
+        .json({ status: "error", message: "Invalid ID format" });
+    }
+
+    next(err);
   }
 });
 
-router.patch("/:id", async (req, res) => {
+router.patch("/:id", async (req, res, next) => {
   try {
     const { name, age, role } = req.body;
     const updates = {};
@@ -55,8 +95,10 @@ router.patch("/:id", async (req, res) => {
     if (name !== undefined) updates.name = name;
     if (age !== undefined) updates.age = Number(age);
     if (role !== undefined) updates.role = role;
-    if (!updates) {
-      return res.status(400).json({ message: "No fields to update" });
+    if (Object.keys(updates).length === 0) {
+      return res
+        .status(400)
+        .json({ status: "error", message: "No fields to update" });
     }
 
     const updatedUser = await User.findByIdAndUpdate(
@@ -66,21 +108,55 @@ router.patch("/:id", async (req, res) => {
     );
 
     if (!updatedUser) {
-      return res.status(404).json({ message: "User not found." });
+      return res
+        .status(404)
+        .json({ status: "error", message: "User not found." });
     }
 
     console.log(updatedUser);
+    res.status(200).json({
+      status: "success",
+      message: "User updated successfully",
+      data: updatedUser,
+    });
+  } catch (err) {
+    console.error(err);
+
+    if (err.name === "ValidationError") {
+      return res.status(400).json({ status: "error", message: err.message });
+    }
+
+    if (err.name === "CastError") {
+      return res
+        .status(400)
+        .json({ status: "error", message: "Invalid ID format" });
+    }
+
+    next(err);
+  }
+});
+
+router.delete("/:id", async (req, res, next) => {
+  try {
+    const deletedUser = await User.findByIdAndDelete(req.params.id);
+
+    if (!deletedUser) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "User not found." });
+    }
+
     res
       .status(200)
-      .json({ message: "User updated successfully", data: updatedUser });
+      .json({ status: "success", message: "User successfully deleted" });
   } catch (err) {
     console.error(err);
 
     if (err.name === "CastError") {
-      return res.status(400).json({ message: "Invalid ID" });
+      return res.status(400).json({ status: "error", message: "Invalid ID" });
     }
 
-    res.status(500).json({ message: "Internal Server Error" });
+    next(err);
   }
 });
 
