@@ -5,8 +5,8 @@ const router = express.Router();
 
 router.post("/", async (req, res, next) => {
   try {
-    const { name, age, role } = req.body;
-    const user = await User.create({ name, age, role });
+    const { name, username, email, password } = req.body;
+    const user = await User.create({ name, username, email, password, role });
 
     res.status(201).json({
       status: "success",
@@ -33,20 +33,14 @@ router.post("/", async (req, res, next) => {
 
 router.get("/", async (req, res, next) => {
   try {
-    const { name, age, role } = req.query;
+    const { name, username, email, role } = req.query;
     const filters = {};
 
-    if (age !== undefined && isNaN(Number(age))) {
-      return res
-        .status(400)
-        .json({ status: "error", message: "Age must be a number." });
-    }
-
     if (name) filters.name = { $regex: name, $options: "i" };
-    if (age) filters.age = Number(age);
+    if (username) filters.username = { $regex: username, $options: "i" };
     if (role) filters.role = role.trim().toLowerCase();
 
-    const users = await User.find(filters);
+    const users = await User.find(filters).select("-password");
 
     res.status(200).json({
       status: "success",
@@ -89,29 +83,28 @@ router.get("/:id", async (req, res, next) => {
 
 router.patch("/:id", async (req, res, next) => {
   try {
-    const { name, age, role } = req.body;
-    const updates = {};
-
-    if (name !== undefined) updates.name = name;
-    if (age !== undefined) updates.age = Number(age);
-    if (role !== undefined) updates.role = role;
-    if (Object.keys(updates).length === 0) {
+    if (!req.body || Object.keys(req.body).length === 0) {
       return res
         .status(400)
         .json({ status: "error", message: "No fields to update" });
     }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      req.params.id,
-      { $set: updates },
-      { returnDocument: "after", runValidators: true },
-    );
+    const user = await User.findById(req.params.id);
 
-    if (!updatedUser) {
+    if (!user) {
       return res
         .status(404)
         .json({ status: "error", message: "User not found." });
     }
+
+    const { name, username, email, password } = req.body;
+
+    if (name !== undefined) updatedUser.name = name;
+    if (username !== undefined) updatedUser.username = username;
+    if (email !== undefined) updatedUser.email = email;
+    if (password !== undefined) updatedUser.password = password;
+
+    const updatedUser = await user.save();
 
     console.log(updatedUser);
     res.status(200).json({
