@@ -1,12 +1,19 @@
 const express = require("express");
 const User = require("../models/User");
+const { protect } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-router.post("/", async (req, res, next) => {
+router.post("/", protect, async (req, res, next) => {
   try {
-    const { name, username, email, password } = req.body;
-    const user = await User.create({ name, username, email, password, role });
+    const { name, username, email, password, role } = req.body;
+    const user = await User.create({
+      name,
+      username,
+      email,
+      password,
+      role,
+    });
 
     res.status(201).json({
       status: "success",
@@ -31,7 +38,7 @@ router.post("/", async (req, res, next) => {
   }
 });
 
-router.get("/", async (req, res, next) => {
+router.get("/", protect, async (req, res, next) => {
   try {
     const { name, username, email, role } = req.query;
     const filters = {};
@@ -57,9 +64,9 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-router.get("/:id", async (req, res, next) => {
+router.get("/:id", protect, async (req, res, next) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(req.params.id).select("-password");
 
     if (!user) {
       return res
@@ -81,7 +88,7 @@ router.get("/:id", async (req, res, next) => {
   }
 });
 
-router.patch("/:id", async (req, res, next) => {
+router.patch("/:id", protect, async (req, res, next) => {
   try {
     if (!req.body || Object.keys(req.body).length === 0) {
       return res
@@ -99,10 +106,10 @@ router.patch("/:id", async (req, res, next) => {
 
     const { name, username, email, password } = req.body;
 
-    if (name !== undefined) updatedUser.name = name;
-    if (username !== undefined) updatedUser.username = username;
-    if (email !== undefined) updatedUser.email = email;
-    if (password !== undefined) updatedUser.password = password;
+    if (name !== undefined) user.name = name;
+    if (username !== undefined) user.username = username;
+    if (email !== undefined) user.email = email;
+    if (password !== undefined) user.password = password;
 
     const updatedUser = await user.save();
 
@@ -129,7 +136,7 @@ router.patch("/:id", async (req, res, next) => {
   }
 });
 
-router.delete("/:id", async (req, res, next) => {
+router.delete("/:id", protect, async (req, res, next) => {
   try {
     const deletedUser = await User.findByIdAndDelete(req.params.id);
 
