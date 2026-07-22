@@ -1,44 +1,10 @@
 const express = require("express");
 const User = require("../models/User");
-const { protect } = require("../middleware/authMiddleware");
+const { protect, authorize } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-router.post("/", protect, async (req, res, next) => {
-  try {
-    const { name, username, email, password, role } = req.body;
-    const user = await User.create({
-      name,
-      username,
-      email,
-      password,
-      role,
-    });
-
-    res.status(201).json({
-      status: "success",
-      message: "User added successfully",
-      data: user,
-    });
-  } catch (err) {
-    console.error(err);
-
-    if (err.name === "ValidationError") {
-      return res.status(400).json({ status: "error", message: err.message });
-    }
-
-    if (err.code === 11000) {
-      return res.status(400).json({
-        status: "error",
-        message: "Duplicate Key Error: Data already exists",
-      });
-    }
-
-    next(err);
-  }
-});
-
-router.get("/", protect, async (req, res, next) => {
+router.get("/", protect, authorize("admin"), async (req, res, next) => {
   try {
     const { name, username, email, role } = req.query;
     const filters = {};
@@ -136,7 +102,7 @@ router.patch("/:id", protect, async (req, res, next) => {
   }
 });
 
-router.delete("/:id", protect, async (req, res, next) => {
+router.delete("/:id", protect, authorize("admin"), async (req, res, next) => {
   try {
     const deletedUser = await User.findByIdAndDelete(req.params.id);
 

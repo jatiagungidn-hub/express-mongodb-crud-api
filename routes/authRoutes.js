@@ -17,7 +17,7 @@ router.post("/register", async (req, res, next) => {
       data: user,
     });
   } catch (err) {
-    cosole.error(err);
+    console.error(err);
 
     if (err.name === "ValidationError") {
       return res.status(400).json({ status: "error", message: err.message });
@@ -62,7 +62,7 @@ router.post("/login", async (req, res, next) => {
 
     const token = jwt.sign(
       { id: user._id, role: user.role },
-      process.env.JWT_SECRET || "fallback_super_secret_key",
+      process.env.JWT_SECRET,
       { expiresIn: "1d" },
     );
 
