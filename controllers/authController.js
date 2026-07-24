@@ -7,14 +7,14 @@ const signToken = (id, role) => {
 
 const register = async (req, res, next) => {
   try {
-    const { name, username, email, password, role } = req.body;
+    const { name, username, email, password } = req.body;
 
     const newUser = await User.create({
       name,
       username,
       email,
       password,
-      role,
+      role: "user",
     });
 
     const token = signToken(newUser._id, newUser.role);

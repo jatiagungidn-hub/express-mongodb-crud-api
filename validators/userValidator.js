@@ -14,7 +14,6 @@ const registerSchema = z
       .toLowerCase()
       .email("Please provide a valid email address"),
     password: z.string().min(8, "Password must be at least 8 characters"),
-    role: z.enum(["user", "admin"]).default("user"),
   })
   .strict();
 
